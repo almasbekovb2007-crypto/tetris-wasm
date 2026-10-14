@@ -1,0 +1,4 @@
+@echo off
+emcc main.cpp -O2 -o index.js -s WASM=1 -s "EXPORTED_RUNTIME_METHODS=[cwrap,ccall]" -s "EXPORTED_FUNCTIONS=[_game_init,_game_update,_game_restart,_action_left,_action_right,_action_down,_action_hard_drop,_action_rotate,_action_pause,_get_grid_w,_get_grid_h,_get_score,_get_lines,_get_level,_get_best,_get_game_over,_get_game_paused,_get_running,_get_cell,_get_cur_size,_get_cur_color,_get_cur_block_r,_get_cur_block_c,_get_next_size,_get_next_color,_get_next_block_r,_get_next_block_c,_set_sound,_set_music,_set_dark,_set_lefty,_set_lang,_get_sound,_get_music,_get_dark,_get_lefty,_get_lang,_get_rec_count,_get_rec_key,_get_rec_val,_get_record_for_current]" -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=16777216 -s NO_EXIT_RUNTIME=1 -s FILESYSTEM=0 -std=c++17
+if %ERRORLEVEL% EQU 0 (echo SUCCESS) else (echo FAILED)
+pause

@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Тетрис</title>
+<style>
+/* ═══════════════════════════════════════════════════════
+   СБРОС И ПЕРЕМЕННЫЕ
+═══════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0f0f1a;
+  --surface:   #1a1a2e;
+  --surface2:  #16213e;
+  --border:    #2a2a4a;
+  --text:      #e8e8f0;
+  --text2:     #9999bb;
+  --accent:    #7c4dff;
+  --accent2:   #00e5ff;
+  --danger:    #ff4444;
+  --success:   #00e676;
+  --btn-bg:    #7c4dff;
+  --btn-hover: #6a3de8;
+  --cell-border: rgba(255,255,255,0.06);
+  --shadow:    0 4px 24px rgba(0,0,0,0.5);
+}
+.light {
+  --bg:        #f0f0f8;
+  --surface:   #ffffff;
+  --surface2:  #e8e8f5;
+  --border:    #ccccdd;
+  --text:      #1a1a2e;
+  --text2:     #555577;
+  --accent:    #5c35cc;
+  --accent2:   #0099bb;
+  --danger:    #cc2222;
+  --success:   #00aa55;
+  --btn-bg:    #5c35cc;
+  --btn-hover: #4a2aaa;
+  --cell-border: rgba(0,0,0,0.08);
+  --shadow:    0 4px 24px rgba(0,0,0,0.15);
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* ═══════════════════════════════════════════════════════
+   ЭКРАНЫ
+═══════════════════════════════════════════════════════ */
+.screen { display: none; width: 100%; max-width: 480px; padding: 16px; }
+.screen.active { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+/* ═══════════════════════════════════════════════════════
+   ГЛАВНОЕ МЕНЮ
+═══════════════════════════════════════════════════════ */
+.game-logo {
+  font-size: 52px;
+  font-weight: 900;
+  letter-spacing: 8px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  margin-bottom: 4px;
+}
+.lang-bar {
+  display: flex; gap: 8px;
+}
+.lang-btn {
+  padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border);
+  background: transparent; color: var(--text2); cursor: pointer; font-size: 13px;
+  transition: all 0.2s;
+}
+.lang-btn.active, .lang-btn:hover {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+}
+
+.card {
+  width: 100%; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 16px 20px; box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--text2); margin-bottom: 10px;
+}
+
+.field-size-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.field-size-row label { font-size: 14px; color: var(--text2); }
+.num-input {
+  width: 60px; padding: 6px 10px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: var(--surface2);
+  color: var(--text); font-size: 15px; text-align: center;
+  outline: none; transition: border-color 0.2s;
+}
+.num-input:focus { border-color: var(--accent); }
+
+.preset-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.preset-btn {
+  flex: 1; padding: 7px 4px; border-radius: 8px; border: 1.5px solid var(--border);
+  background: var(--surface2); color: var(--text); cursor: pointer; font-size: 13px;
+  transition: all 0.2s; white-space: nowrap;
+}
+.preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.piece-size-row { display: flex; gap: 8px; }
+.size-btn {
+  flex: 1; padding: 10px; border-radius: 10px; border: 2px solid var(--border);
+  background: var(--surface2); color: var(--text); cursor: pointer; font-size: 18px;
+  font-weight: 700; transition: all 0.2s;
+}
+.size-btn.active, .size-btn:hover {
+  border-color: var(--accent); background: var(--accent); color: #fff;
+}
+
+.record-line {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 14px; color: var(--text2);
+}
+.record-line span { color: var(--accent2); font-weight: 700; font-size: 16px; }
+
+.btn-main {
+  width: 100%; padding: 14px; border-radius: 12px; border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff; font-size: 17px; font-weight: 700; cursor: pointer;
+  letter-spacing: 1px; transition: opacity 0.2s, transform 0.1s;
+}
+.btn-main:hover { opacity: 0.9; }
+.btn-main:active { transform: scale(0.98); }
+
+.btn-secondary {
+  width: 100%; padding: 12px; border-radius: 12px;
+  border: 1.5px solid var(--border); background: var(--surface);
+  color: var(--text); font-size: 15px; cursor: pointer; transition: all 0.2s;
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ═══════════════════════════════════════════════════════
+   НАСТРОЙКИ
+═══════════════════════════════════════════════════════ */
+.settings-scroll { width: 100%; overflow-y: auto; max-height: 70vh; display: flex; flex-direction: column; gap: 12px; }
+.settings-group { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 18px; }
+.settings-group-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); margin-bottom: 12px; }
+.setting-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.setting-row:last-child { border-bottom: none; }
+.setting-row label:first-child { font-size: 14px; color: var(--text); }
+
+/* Toggle switch */
+.toggle { position: relative; width: 44px; height: 24px; cursor: pointer; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-track {
+  position: absolute; inset: 0; background: var(--border);
+  border-radius: 24px; transition: background 0.3s;
+}
+.toggle input:checked + .toggle-track { background: var(--accent); }
+.toggle-thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 18px; height: 18px; background: #fff; border-radius: 50%;
+  transition: transform 0.3s;
+}
+.toggle input:checked ~ .toggle-thumb { transform: translateX(20px); }
+
+.key-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.key-row:last-child { border-bottom: none; }
+.key-label { font-size: 14px; color: var(--text); }
+.key-badge {
+  padding: 4px 12px; border-radius: 6px; border: 1.5px solid var(--border);
+  background: var(--surface2); color: var(--text2); font-size: 12px;
+  font-family: monospace; cursor: pointer; transition: all 0.2s;
+}
+.key-badge.listening { border-color: var(--accent2); color: var(--accent2); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* ═══════════════════════════════════════════════════════
+   РЕКОРДЫ
+═══════════════════════════════════════════════════════ */
+.records-list { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+.rec-item {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 18px;
+}
+.rec-size { font-size: 15px; color: var(--text); font-weight: 600; }
+.rec-score { font-size: 16px; color: var(--accent2); font-weight: 700; }
+.rec-empty { text-align: center; color: var(--text2); font-size: 14px; padding: 24px; }
+
+/* ═══════════════════════════════════════════════════════
+   ИГРОВОЙ ЭКРАН
+═══════════════════════════════════════════════════════ */
+#screen-game {
+  position: fixed; inset: 0; display: none;
+  flex-direction: column; align-items: center; justify-content: center;
+  background: var(--bg); gap: 0; max-width: none; padding: 0;
+  overflow: auto;
+}
+#screen-game.active { display: flex; }
+
+.game-layout {
+  display: flex; align-items: flex-start; justify-content: center;
+  gap: 16px; padding: 12px;
+  width: 100%; max-width: none;
+  overflow-x: auto;
+}
+
+/* Боковая панель */
+.side-panel {
+  display: flex; flex-direction: column; gap: 10px;
+  min-width: 110px;
+}
+.info-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 14px;
+}
+.info-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); }
+.info-card .value { font-size: 22px; font-weight: 800; color: var(--accent2); margin-top: 2px; }
+.info-card .value.small { font-size: 16px; }
+
+/* Canvas обёртка */
+.canvas-wrap {
+  position: relative; border: 2px solid var(--border);
+  border-radius: 8px; overflow: hidden;
+  box-shadow: 0 0 30px rgba(124,77,255,0.15);
+}
+.canvas-wrap.lefty {
+  transform: scaleX(-1);
+}
+#game-canvas { display: block; background: var(--surface2); }
+
+/* Next piece canvas */
+#next-canvas { display: block; background: var(--surface2); border-radius: 8px; }
+
+/* Кнопки управления (мобильные) */
+.mobile-controls {
+  display: flex; flex-direction: column; gap: 8px; align-items: center;
+  padding: 8px 0;
+}
+.ctrl-row { display: flex; gap: 8px; }
+.ctrl-btn {
+  width: 56px; height: 56px; border-radius: 12px;
+  border: 2px solid var(--border); background: var(--surface);
+  color: var(--text); font-size: 22px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.1s; user-select: none; -webkit-user-select: none;
+  touch-action: manipulation;
+}
+.ctrl-btn:active { background: var(--accent); border-color: var(--accent); transform: scale(0.93); }
+.ctrl-btn.wide { width: 118px; }
+
+/* Кнопки верхней панели игры */
+.game-top-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  width: 100%; max-width: 700px; padding: 8px 12px;
+}
+.game-top-bar .icon-btn {
+  width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--border);
+  background: var(--surface); color: var(--text); font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+}
+.game-top-bar .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ═══════════════════════════════════════════════════════
+   ОВЕРЛЕИ (Пауза, Game Over)
+═══════════════════════════════════════════════════════ */
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px; z-index: 100; backdrop-filter: blur(4px);
+}
+.overlay.active { display: flex; }
+.overlay-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 32px 40px; text-align: center;
+  box-shadow: var(--shadow); max-width: 320px; width: 90%;
+  display: flex; flex-direction: column; gap: 14px; align-items: center;
+}
+.overlay-title { font-size: 28px; font-weight: 900; }
+.overlay-score { font-size: 42px; font-weight: 900; color: var(--accent2); }
+.overlay-best  { font-size: 14px; color: var(--text2); }
+
+/* ═══════════════════════════════════════════════════════
+   LOADING
+═══════════════════════════════════════════════════════ */
+#loading {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 20px; z-index: 999;
+}
+.spinner {
+  width: 48px; height: 48px; border: 4px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#loading-text { color: var(--text2); font-size: 14px; }
+
+/* ═══════════════════════════════════════════════════════
+   АДАПТИВ
+═══════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+  .game-layout { flex-direction: column; align-items: center; gap: 8px; padding: 8px; }
+  .side-panel { flex-direction: row; flex-wrap: wrap; min-width: unset; width: 100%; justify-content: center; }
+  .info-card { flex: 1; min-width: 80px; }
+  .info-card .value { font-size: 18px; }
+}
+</style>
+</head>
+<body class="dark">
+
+<!-- ЗАГРУЗКА -->
+<div id="loading">
+  <div class="spinner"></div>
+  <div id="loading-text">Загрузка Тетриса…</div>
+</div>
+
+<!-- ═══════════ ГЛАВНОЕ МЕНЮ ═══════════ -->
+<div id="screen-menu" class="screen active" style="display:none">
+  <div class="game-logo">ТЕТРИС</div>
+
+  <div class="lang-bar">
+    <button class="lang-btn active" onclick="setLang('ru')">RU</button>
+    <button class="lang-btn"        onclick="setLang('en')">EN</button>
+    <button class="lang-btn"        onclick="setLang('kg')">KG</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title" data-i18n="field_size">Размер поля</div>
+    <div class="field-size-row">
+      <label data-i18n="width">Ш:</label>
+      <input type="number" id="inp-w" value="10" min="6" max="20" class="num-input">
+      <label data-i18n="height">В:</label>
+      <input type="number" id="inp-h" value="20" min="10" max="30" class="num-input">
+    </div>
+    <div class="preset-row">
+      <button class="preset-btn" onclick="setPreset(8,16)"  data-i18n="small">Маленькое</button>
+      <button class="preset-btn" onclick="setPreset(10,20)" data-i18n="classic">Классика</button>
+      <button class="preset-btn" onclick="setPreset(14,24)" data-i18n="large">Большое</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" data-i18n="piece_size">Размер фигур</div>
+    <div class="piece-size-row">
+      <button class="size-btn active" onclick="setPieceSize(4)" id="psz4">4</button>
+      <button class="size-btn"        onclick="setPieceSize(5)" id="psz5">5</button>
+      <button class="size-btn"        onclick="setPieceSize(6)" id="psz6">6</button>
+      <button class="size-btn"        onclick="setPieceSize(7)" id="psz7">7</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="record-line">
+      <span data-i18n="record">Рекорд</span>
+      <span id="menu-record-val">0</span>
+    </div>
+  </div>
+
+  <button class="btn-main"      onclick="startGame()"     data-i18n="start_game">Начать игру</button>
+  <button class="btn-secondary" onclick="showScreen('settings')" data-i18n="settings">Настройки</button>
+  <button class="btn-secondary" onclick="showScreen('records')"  data-i18n="records">Рекорды</button>
+</div>
+
+<!-- ═══════════ НАСТРОЙКИ ═══════════ -->
+<div id="screen-settings" class="screen" style="display:none">
+  <h2 style="font-size:24px;font-weight:800" data-i18n="settings">Настройки</h2>
+
+  <div class="settings-scroll" style="width:100%">
+    <!-- Звук -->
+    <div class="settings-group">
+      <div class="settings-group-label" data-i18n="sound_music">Звук и музыка</div>
+      <div class="setting-row">
+        <label data-i18n="sound_fx">Звуковые эффекты</label>
+        <label class="toggle" onclick="">
+          <input type="checkbox" id="cfg-sound" checked onchange="Module.set_sound(this.checked?1:0)">
+          <div class="toggle-track"></div><div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="setting-row">
+        <label data-i18n="music">Фоновая музыка</label>
+        <label class="toggle">
+          <input type="checkbox" id="cfg-music" checked onchange="Module.set_music(this.checked?1:0);handleMusic()">
+          <div class="toggle-track"></div><div class="toggle-thumb"></div>
+        </label>
+      </div>
+    </div>
+    <!-- Тема -->
+    <div class="settings-group">
+      <div class="settings-group-label" data-i18n="theme">Тема</div>
+      <div class="setting-row">
+        <label data-i18n="dark_theme">Тёмная тема</label>
+        <label class="toggle">
+          <input type="checkbox" id="cfg-dark" checked onchange="setTheme(this.checked)">
+          <div class="toggle-track"></div><div class="toggle-thumb"></div>
+        </label>
+      </div>
+    </div>
+    <!-- Управление -->
+    <div class="settings-group">
+      <div class="settings-group-label" data-i18n="controls_layout">Расположение кнопок</div>
+      <div class="setting-row">
+        <label data-i18n="left_hand">Для левши</label>
+        <label class="toggle">
+          <input type="checkbox" id="cfg-lefty" onchange="Module.set_lefty(this.checked?1:0); setLeftyMode(this.checked)">
+          <div class="toggle-track"></div><div class="toggle-thumb"></div>
+        </label>
+      </div>
+    </div>
+    <!-- Клавиши -->
+    <div class="settings-group">
+      <div class="settings-group-label" data-i18n="key_bindings">Клавиши управления</div>
+      <div id="key-bindings-list"></div>
+    </div>
+    <!-- Язык -->
+    <div class="settings-group">
+      <div class="settings-group-label" data-i18n="language">Язык</div>
+      <div class="lang-bar">
+        <button class="lang-btn" onclick="setLang('ru')">Русский</button>
+        <button class="lang-btn" onclick="setLang('en')">English</button>
+        <button class="lang-btn" onclick="setLang('kg')">Кыргызча</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-main"      onclick="saveSettings(); showScreen('menu'); updateMenuRecord();"          data-i18n="save">Сохранить</button>
+  <button class="btn-secondary" onclick="showScreen('menu')"      data-i18n="back">Назад</button>
+</div>
+
+<!-- ═══════════ РЕКОРДЫ ═══════════ -->
+<div id="screen-records" class="screen" style="display:none">
+  <h2 style="font-size:24px;font-weight:800" data-i18n="records">Рекорды</h2>
+  <div class="records-list" id="records-list"></div>
+  <button class="btn-secondary" onclick="showScreen('menu')" data-i18n="back">Назад</button>
+</div>
+
+<!-- ═══════════ ИГРА ═══════════ -->
+<div id="screen-game" class="screen" style="display:none">
+  <!-- Верхняя панель -->
+  <div class="game-top-bar">
+    <button class="icon-btn" onclick="goMenu()" title="Меню">🏠</button>
+    <span style="font-size:13px;color:var(--text2)" id="game-hint">← → ↑ ↓ Space</span>
+    <button class="icon-btn" onclick="togglePause()" id="pause-btn" title="Пауза">⏸</button>
+  </div>
+
+  <div class="game-layout">
+    <!-- Левая панель -->
+    <div class="side-panel" id="left-panel">
+      <div class="info-card">
+        <div class="label" data-i18n="score">Счёт</div>
+        <div class="value" id="hud-score">0</div>
+      </div>
+      <div class="info-card">
+        <div class="label" data-i18n="best">Рекорд</div>
+        <div class="value small" id="hud-best">0</div>
+      </div>
+      <div class="info-card">
+        <div class="label" data-i18n="level">Уровень</div>
+        <div class="value" id="hud-level">1</div>
+      </div>
+      <div class="info-card">
+        <div class="label" data-i18n="lines">Линии</div>
+        <div class="value small" id="hud-lines">0</div>
+      </div>
+    </div>
+
+    <!-- Поле -->
+    <div class="canvas-wrap" id="canvas-wrap">
+      <canvas id="game-canvas"></canvas>
+    </div>
+
+    <!-- Правая панель -->
+    <div class="side-panel" id="right-panel">
+      <div class="info-card">
+        <div class="label" data-i18n="next">Следующая</div>
+        <canvas id="next-canvas" width="100" height="100"></canvas>
+      </div>
+      <!-- Мобильные кнопки (вертикальная группа) -->
+      <div class="mobile-controls" id="mobile-ctrl">
+        <div class="ctrl-row">
+          <button class="ctrl-btn wide" ontouchstart="onCtrl('rotate')" onmousedown="onCtrl('rotate')">↻</button>
+        </div>
+        <div class="ctrl-row">
+          <button class="ctrl-btn" ontouchstart="onCtrl('left')"  onmousedown="onCtrl('left')">◀</button>
+          <button class="ctrl-btn" ontouchstart="onCtrl('down')"  onmousedown="onCtrl('down')">▼</button>
+          <button class="ctrl-btn" ontouchstart="onCtrl('right')" onmousedown="onCtrl('right')">▶</button>
+        </div>
+        <div class="ctrl-row">
+          <button class="ctrl-btn wide" ontouchstart="onCtrl('drop')" onmousedown="onCtrl('drop')">⬇ Drop</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ ОВЕРЛЕИ ═══════════ -->
+<div class="overlay" id="overlay-pause" onclick="if(event.target === this) togglePause()">
+  <div class="overlay-box">
+    <div class="overlay-title" data-i18n="paused">Пауза</div>
+    <button class="btn-main"      onclick="togglePause()"      data-i18n="resume">Продолжить</button>
+    <button class="btn-secondary" onclick="goMenu()"           data-i18n="exit_menu">Выйти в меню</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay-gameover" onclick="if(event.target === this) doGoMenu()">
+  <div class="overlay-box" onclick="event.stopPropagation()">
+    <div class="overlay-title" style="color:var(--danger)" data-i18n="game_over">Игра окончена</div>
+    <div class="overlay-score" id="go-score">0</div>
+    <div class="overlay-best" id="go-best"></div>
+    <button class="btn-main"      onclick="restartGame()"      data-i18n="play_again">Играть снова</button>
+    <button class="btn-secondary" onclick="goMenu()"           data-i18n="exit_menu">Выйти в меню</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay-exit-confirm">
+  <div class="overlay-box">
+    <div class="overlay-title" data-i18n="exit_confirm">Выйти из игры?</div>
+    <div style="font-size:14px;color:var(--text2)" data-i18n="progress_lost">Прогресс будет потерян</div>
+    <button class="btn-main"      onclick="confirmExit(true)"  data-i18n="yes">Да, выйти</button>
+    <button class="btn-secondary" onclick="confirmExit(false)" data-i18n="cancel">Отмена</button>
+  </div>
+</div>
+
+<!-- ═══════════ WASM ═══════════ -->
+<!-- КРИТИЧНО: var Module должен быть объявлен ДО загрузки index.js -->
+<script>
+/* ═══════════════════════════════════════════════════════
+   ЛОКАЛИЗАЦИЯ
+═══════════════════════════════════════════════════════ */
+const LANGS = {
+  ru: {
+    field_size:'Размер поля', width:'Ш:', height:'В:', small:'Маленькое',
+    classic:'Классика', large:'Большое', piece_size:'Размер фигур',
+    record:'Рекорд', start_game:'Начать игру', settings:'Настройки',
+    records:'Рекорды', sound_music:'Звук и музыка', sound_fx:'Звуковые эффекты',
+    music:'Фоновая музыка', theme:'Тема', dark_theme:'Тёмная тема',
+    controls_layout:'Расположение кнопок', left_hand:'Для левши',
+    key_bindings:'Клавиши управления', language:'Язык', save:'Сохранить',
+    back:'Назад', score:'Счёт', best:'Рекорд', level:'Уровень', lines:'Линии',
+    next:'Следующая', paused:'Пауза', resume:'Продолжить',
+    exit_menu:'Выйти в меню', game_over:'Игра окончена', play_again:'Играть снова',
+    exit_confirm:'Выйти из игры?', progress_lost:'Прогресс будет потерян',
+    yes:'Да, выйти', cancel:'Отмена', no_records:'Нет рекордов',
+    new_record:'🏆 Новый рекорд!', prev_best:'Лучший результат:',
+    press_key:'Нажмите клавишу…',
+    actions:{left:'Влево',right:'Вправо',down:'Вниз',rotate:'Поворот',drop:'Сброс',pause:'Пауза'}
+  },
+  en: {
+    field_size:'Field Size', width:'W:', height:'H:', small:'Small',
+    classic:'Classic', large:'Large', piece_size:'Piece Size',
+    record:'Record', start_game:'Start Game', settings:'Settings',
+    records:'Records', sound_music:'Sound & Music', sound_fx:'Sound Effects',
+    music:'Background Music', theme:'Theme', dark_theme:'Dark Theme',
+    controls_layout:'Button Layout', left_hand:'Left-handed',
+    key_bindings:'Key Bindings', language:'Language', save:'Save',
+    back:'Back', score:'Score', best:'Best', level:'Level', lines:'Lines',
+    next:'Next', paused:'Paused', resume:'Resume',
+    exit_menu:'Exit to Menu', game_over:'Game Over', play_again:'Play Again',
+    exit_confirm:'Exit game?', progress_lost:'Progress will be lost',
+    yes:'Yes, exit', cancel:'Cancel', no_records:'No records yet',
+    new_record:'🏆 New Record!', prev_best:'Best score:',
+    press_key:'Press a key…',
+    actions:{left:'Left',right:'Right',down:'Down',rotate:'Rotate',drop:'Hard Drop',pause:'Pause'}
+  },
+  kg: {
+    field_size:'Талаа өлчөмү', width:'Эн:', height:'Бой:', small:'Кичинекей',
+    classic:'Классика', large:'Чоң', piece_size:'Фигура өлчөмү',
+    record:'Рекорд', start_game:'Оюнду баштоо', settings:'Жөндөөлөр',
+    records:'Рекорддор', sound_music:'Үн жана музыка', sound_fx:'Үн эффекттери',
+    music:'Фондук музыка', theme:'Тема', dark_theme:'Күңүрт тема',
+    controls_layout:'Баскыч жайгашуусу', left_hand:'Сологойлор үчүн',
+    key_bindings:'Баскычтарды башкаруу', language:'Тил', save:'Сактоо',
+    back:'Артка', score:'Упай', best:'Рекорд', level:'Деңгээл', lines:'Саптар',
+    next:'Кийинки', paused:'Тыным', resume:'Улантуу',
+    exit_menu:'Менюга чыгуу', game_over:'Оюн бүттү', play_again:'Кайра ойноо',
+    exit_confirm:'Оюндан чыгасызбы?', progress_lost:'Прогресс жоголот',
+    yes:'Ооба, чыгуу', cancel:'Жок', no_records:'Рекорд жок',
+    new_record:'🏆 Жаңы рекорд!', prev_best:'Мыкты натыйжа:',
+    press_key:'Баскычты басыңыз…',
+    actions:{left:'Солго',right:'Оңго',down:'Төмөн',rotate:'Бурулуу',drop:'Түшүрүү',pause:'Тыным'}
+  }
+};
+
+let curLang = 'ru';
+function t(k) { return (LANGS[curLang]||LANGS.ru)[k] || k; }
+function setLang(l) {
+  curLang = l;
+  if (window.Module && Module.set_lang) Module.set_lang(l==='ru'?0:l==='en'?1:2);
+  applyI18n();
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent.trim().toLowerCase().startsWith(l)));
+}
+
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if (t(k) !== k) el.textContent = t(k);
+  });
+  buildKeyBindings();
+  updateMenuRecord();
+}
+
+/* ═══════════════════════════════════════════════════════
+   ТЕМА
+═══════════════════════════════════════════════════════ */
+function setTheme(dark) {
+  document.body.classList.toggle('light', !dark);
+  if (window.Module && Module.set_dark) Module.set_dark(dark?1:0);
+}
+
+/* Левша режим */
+function setLeftyMode(lefty) {
+  leftyMode = lefty;
+  document.getElementById('canvas-wrap').classList.toggle('lefty', lefty);
+}
+
+async function apiRequest(path, options = {}) {
+  try {
+    const res = await fetch(path, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options
+    });
+    if (!res.ok) throw new Error(`API error ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    return null;
+  }
+}
+
+async function initBackend() {
+  if (!window.location.protocol.startsWith('http')) return;
+  const result = await apiRequest('/api/ping');
+  backendEnabled = !!result;
+}
+
+async function saveBackendSettings(settings) {
+  if (!backendEnabled) return;
+  await apiRequest('/api/settings', { method: 'POST', body: JSON.stringify(settings) });
+}
+
+async function loadBackendSettings() {
+  if (!backendEnabled) return null;
+  return await apiRequest('/api/settings');
+}
+
+async function saveBackendRecord(grid, score) {
+  if (!backendEnabled) return;
+  await apiRequest('/api/record', { method: 'POST', body: JSON.stringify({ grid, score }) });
+}
+
+async function getBackendRecord(grid) {
+  if (!backendEnabled) return null;
+  return await apiRequest(`/api/record?grid=${encodeURIComponent(grid)}`);
+}
+
+async function getBackendRecords() {
+  if (!backendEnabled) return null;
+  return await apiRequest('/api/records');
+}
+
+/* ═══════════════════════════════════════════════════════
+   НАСТРОЙКИ localStorage
+═══════════════════════════════════════════════════════ */
+const DEFAULT_KEYS = {
+  left:'ArrowLeft', right:'ArrowRight', down:'ArrowDown',
+  rotate:'ArrowUp', drop:'Space', pause:'KeyP'
+};
+let keyMap = {...DEFAULT_KEYS};
+
+function saveSettings() {
+  const s = {
+    lang: curLang,
+    dark: document.getElementById('cfg-dark').checked,
+    sound: document.getElementById('cfg-sound').checked,
+    music: document.getElementById('cfg-music').checked,
+    lefty: document.getElementById('cfg-lefty').checked,
+    keyMap,
+    fw: document.getElementById('inp-w').value,
+    fh: document.getElementById('inp-h').value,
+    psz: curPieceSize
+  };
+  localStorage.setItem('tetris_settings', JSON.stringify(s));
+  saveBackendSettings(s);
+}
+
+async function loadSettings() {
+  let s = {};
+  try {
+    s = JSON.parse(localStorage.getItem('tetris_settings') || '{}');
+  } catch(e) { s = {}; }
+
+  const backendSettings = await loadBackendSettings();
+  if (backendSettings && typeof backendSettings === 'object') {
+    s = { ...s, ...backendSettings };
+  }
+
+  if (s.lang) { curLang = s.lang; }
+  if (s.keyMap) keyMap = {...DEFAULT_KEYS, ...s.keyMap};
+  if (typeof s.dark !== 'undefined') {
+    document.getElementById('cfg-dark').checked = s.dark;
+    setTheme(s.dark);
+  }
+  if (typeof s.sound !== 'undefined') document.getElementById('cfg-sound').checked = s.sound;
+  if (typeof s.music !== 'undefined') document.getElementById('cfg-music').checked = s.music;
+  if (typeof s.lefty !== 'undefined') {
+    document.getElementById('cfg-lefty').checked = s.lefty;
+    setLeftyMode(s.lefty);
+  }
+  if (s.fw) document.getElementById('inp-w').value = s.fw;
+  if (s.fh) document.getElementById('inp-h').value = s.fh;
+  if (s.psz) setPieceSize(s.psz);
+}
+
+function saveRecords() {
+  if (!window.Module) return;
+  const recs = {};
+  const n = Module.get_rec_count();
+  for (let i = 0; i < n; i++) {
+    recs[Module.get_rec_key(i)] = Module.get_rec_val(i);
+  }
+  localStorage.setItem('tetris_records', JSON.stringify(recs));
+}
+
+function loadRecords() {
+  try {
+    const recs = JSON.parse(localStorage.getItem('tetris_records') || '{}');
+    return recs;
+  } catch(e) { return {}; }
+}
+
+async function saveRecordToBackend(grid, score) {
+  await saveBackendRecord(grid, score);
+}
+
+/* ═══════════════════════════════════════════════════════
+   КЛАВИШИ (переназначение)
+═══════════════════════════════════════════════════════ */
+let listeningAction = null;
+
+function buildKeyBindings() {
+  const list = document.getElementById('key-bindings-list');
+  if (!list) return;
+  const actions = ['left','right','down','rotate','drop','pause'];
+  const labels = t('actions') || DEFAULT_KEYS;
+  list.innerHTML = actions.map(a => `
+    <div class="key-row">
+      <span class="key-label">${labels[a]||a}</span>
+      <button class="key-badge" id="kb-${a}" onclick="startListening('${a}')">${keyMap[a]}</button>
+    </div>`).join('');
+}
+
+function startListening(action) {
+  if (listeningAction) {
+    document.getElementById('kb-' + listeningAction)?.classList.remove('listening');
+  }
+  listeningAction = action;
+  const btn = document.getElementById('kb-' + action);
+  if (btn) { btn.textContent = t('press_key'); btn.classList.add('listening'); }
+}
+
+document.addEventListener('keydown', e => {
+  if (listeningAction) {
+    e.preventDefault();
+    keyMap[listeningAction] = e.code;
+    const btn = document.getElementById('kb-' + listeningAction);
+    if (btn) { btn.textContent = e.code; btn.classList.remove('listening'); }
+    listeningAction = null;
+    saveSettings();
+    return;
+  }
+  // Игровые клавиши
+  if (!gameActive) return;
+  e.preventDefault();
+  const a = Object.keys(keyMap).find(k => keyMap[k] === e.code);
+  if (a && a !== 'down') onCtrl(a);
+});
+
+/* ═══════════════════════════════════════════════════════
+   ЦВЕТА ФИГУР
+═══════════════════════════════════════════════════════ */
+const COLORS = [
+  null,
+  '#00e5ff', // 1 I — cyan
+  '#ffee00', // 2 O — yellow
+  '#aa00ff', // 3 T — purple
+  '#2962ff', // 4 J — blue
+  '#ff6d00', // 5 L — orange
+  '#00c853', // 6 S — green
+  '#ff1744', // 7 Z — red
+];
+const GHOST_COLOR = 'rgba(180,180,220,0.18)';
+const GHOST_BORDER = 'rgba(180,180,220,0.35)';
+
+/* ═══════════════════════════════════════════════════════
+   РЕНДЕР CANVAS
+═══════════════════════════════════════════════════════ */
+let canvas, ctx, nextCanvas, nextCtx;
+let cellSize = 28;
+let gameActive = false;
+let leftyMode = false;
+let backendEnabled = false;
+let animId = null;
+
+function initCanvas(gw, gh) {
+  canvas = document.getElementById('game-canvas');
+  ctx    = canvas.getContext('2d');
+
+  const maxH = window.innerHeight - 140;
+  const maxW = window.innerWidth  - 260;
+  cellSize = Math.max(16, Math.min(32, Math.floor(Math.min(maxH / gh, maxW / gw))));
+
+  canvas.width  = gw * cellSize;
+  canvas.height = gh * cellSize;
+
+  nextCanvas = document.getElementById('next-canvas');
+  nextCtx    = nextCanvas.getContext('2d');
+}
+
+function drawBlock(ctx, x, y, color, ghost) {
+  if (ghost) {
+    ctx.fillStyle = GHOST_COLOR;
+    ctx.strokeStyle = GHOST_BORDER;
+  } else {
+    ctx.fillStyle = color;
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  }
+  const pad = 1;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(x+pad, y+pad, cellSize-pad*2, cellSize-pad*2, 3)
+                : ctx.rect(x+pad, y+pad, cellSize-pad*2, cellSize-pad*2);
+  ctx.fill();
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+
+  if (!ghost) {
+    // Highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(x+pad+2, y+pad+2, cellSize-pad*2-4, Math.floor(cellSize/3), 2)
+                  : ctx.rect(x+pad+2, y+pad+2, cellSize-pad*2-4, Math.floor(cellSize/3));
+    ctx.fill();
+  }
+}
+
+function render() {
+  if (!window.Module || !ctx) return;
+
+  const gw = Module.get_grid_w();
+  const gh = Module.get_grid_h();
+
+  // Фон сетки
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--surface2').trim() || '#16213e';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Сетка
+  ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--cell-border').trim() || 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 0.5;
+  for (let r = 0; r < gh; r++) {
+    for (let c = 0; c < gw; c++) {
+      ctx.strokeRect(c * cellSize, r * cellSize, cellSize, cellSize);
+    }
+  }
+
+  // Поле (зафиксированные блоки + ghost)
+  for (let r = 0; r < gh; r++) {
+    for (let c = 0; c < gw; c++) {
+      const cell = Module.get_cell(r, c);
+      if (cell > 0) {
+        drawBlock(ctx, c * cellSize, r * cellSize, COLORS[cell], false);
+      } else if (cell === -1) {
+        drawBlock(ctx, c * cellSize, r * cellSize, null, true);
+      }
+    }
+  }
+
+  // Текущая фигура
+  const sz    = Module.get_cur_size();
+  const color = COLORS[Module.get_cur_color()];
+  for (let i = 0; i < sz; i++) {
+    const r = Module.get_cur_block_r(i);
+    const c = Module.get_cur_block_c(i);
+    if (r >= 0) drawBlock(ctx, c * cellSize, r * cellSize, color, false);
+  }
+
+  // HUD
+  document.getElementById('hud-score').textContent = Module.get_score();
+  document.getElementById('hud-best').textContent  = Module.get_best();
+  document.getElementById('hud-level').textContent = Module.get_level();
+  document.getElementById('hud-lines').textContent = Module.get_lines();
+
+  // Следующая фигура
+  drawNextPiece();
+}
+
+function drawNextPiece() {
+  if (!nextCtx) return;
+  nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+  nextCtx.fillStyle = getComputedStyle(document.body).getPropertyValue('--surface2').trim() || '#16213e';
+  nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+
+  const sz    = Module.get_next_size();
+  const color = COLORS[Module.get_next_color()];
+
+  // Найти границы фигуры
+  let maxR = 0, maxC = 0;
+  for (let i = 0; i < sz; i++) {
+    if (Module.get_next_block_r(i) > maxR) maxR = Module.get_next_block_r(i);
+    if (Module.get_next_block_c(i) > maxC) maxC = Module.get_next_block_c(i);
+  }
+  const pw = nextCanvas.width  / (maxC + 2);
+  const ph = nextCanvas.height / (maxR + 2);
+  const ps = Math.min(pw, ph, 22);
+  const offX = (nextCanvas.width  - (maxC + 1) * ps) / 2;
+  const offY = (nextCanvas.height - (maxR + 1) * ps) / 2;
+
+  for (let i = 0; i < sz; i++) {
+    const r = Module.get_next_block_r(i);
+    const c = Module.get_next_block_c(i);
+    const ox = offX + c * ps, oy = offY + r * ps;
+    nextCtx.fillStyle = color;
+    nextCtx.strokeStyle = 'rgba(0,0,0,0.2)';
+    nextCtx.beginPath();
+    nextCtx.roundRect ? nextCtx.roundRect(ox+1, oy+1, ps-2, ps-2, 3) : nextCtx.rect(ox+1, oy+1, ps-2, ps-2);
+    nextCtx.fill(); nextCtx.lineWidth=0.5; nextCtx.stroke();
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   ИГРОВОЙ ЦИКЛ
+═══════════════════════════════════════════════════════ */
+function gameLoop(now) {
+  if (!gameActive) return;
+
+  const sig = Module.game_update(now);
+  if (sig === 2) {
+    // Game Over
+    render();
+    showGameOver();
+    saveSettings();
+    return;
+  }
+  if (sig === 1) {
+    playSound('drop');
+  }
+
+  render();
+
+  // Проверяем паузу
+  if (Module.get_game_paused()) {
+    document.getElementById('overlay-pause').classList.add('active');
+    document.getElementById('pause-btn').textContent = '▶';
+  }
+
+  animId = requestAnimationFrame(gameLoop);
+}
+
+/* ═══════════════════════════════════════════════════════
+   ЭКРАНЫ
+═══════════════════════════════════════════════════════ */
+let curPieceSize = 4;
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.style.display = 'none';
+    s.classList.remove('active');
+  });
+  const el = document.getElementById('screen-' + name);
+  if (!el) return;
+  el.style.display = 'flex';
+  el.classList.add('active');
+
+  if (name === 'records') renderRecords();
+  if (name === 'menu') updateMenuRecord();
+  if (name === 'settings') buildKeyBindings();
+}
+
+function setPreset(w, h) {
+  document.getElementById('inp-w').value = w;
+  document.getElementById('inp-h').value = h;
+  updateMenuRecord();
+}
+
+function setPieceSize(sz) {
+  curPieceSize = sz;
+  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('psz' + sz)?.classList.add('active');
+}
+
+async function updateMenuRecord() {
+  if (!window.Module) return;
+  const w = +document.getElementById('inp-w').value;
+  const h = +document.getElementById('inp-h').value;
+  const key = `${w}x${h}`;
+
+  let rec = getLocalRecordForSize(w, h);
+  if (typeof fetch === 'function') {
+    try {
+      const resp = await fetch(`/api/record/${encodeURIComponent(key)}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        rec = Math.max(rec, data.score || 0);
+      }
+    } catch (e) {
+      console.warn('Backend record fetch failed', e);
+    }
+  }
+
+  document.getElementById('menu-record-val').textContent = rec;
+}
+
+function getLocalRecordForSize(w, h) {
+  try {
+    const recs = JSON.parse(localStorage.getItem('tetris_records') || '{}');
+    return recs[`${w}x${h}`] || 0;
+  } catch(e) { return 0; }
+}
+
+async function renderRecords() {
+  const list = document.getElementById('records-list');
+  let recs = {};
+
+  try {
+    recs = JSON.parse(localStorage.getItem('tetris_records') || '{}');
+  } catch(e) {
+    recs = {};
+  }
+
+  if (typeof fetch === 'function') {
+    try {
+      const resp = await fetch('/api/records');
+      if (resp.ok) {
+        const data = await resp.json();
+        data.forEach(item => {
+          if (item.key && typeof item.score === 'number') {
+            recs[item.key] = Math.max(recs[item.key] || 0, item.score);
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Backend records fetch failed', e);
+    }
+  }
+
+  const keys = Object.keys(recs);
+  if (keys.length === 0) {
+    list.innerHTML = `<div class="rec-empty">${t('no_records')}</div>`;
+    return;
+  }
+
+  keys.sort((a,b) => recs[b] - recs[a]);
+  list.innerHTML = keys.map(k =>
+    `<div class="rec-item"><span class="rec-size">${k}</span><span class="rec-score">${recs[k]}</span></div>`
+  ).join('');
+}
+
+/* ═══════════════════════════════════════════════════════
+   ЗАПУСК ИГРЫ
+═══════════════════════════════════════════════════════ */
+function startGame() {
+  const w = Math.max(6,  Math.min(20, +document.getElementById('inp-w').value || 10));
+  const h = Math.max(10, Math.min(30, +document.getElementById('inp-h').value || 20));
+
+  Module.game_init(w, h, curPieceSize);
+  initCanvas(w, h);
+  gameActive = true;
+
+  showScreen('game');
+  document.getElementById('overlay-pause').classList.remove('active');
+  document.getElementById('overlay-gameover').classList.remove('active');
+  document.getElementById('pause-btn').textContent = '⏸';
+
+  handleMusic();
+  if (animId) cancelAnimationFrame(animId);
+  animId = requestAnimationFrame(gameLoop);
+}
+
+function restartGame() {
+  document.getElementById('overlay-gameover').classList.remove('active');
+  document.getElementById('overlay-pause').classList.remove('active');
+  Module.game_restart();
+  gameActive = true;
+  document.getElementById('pause-btn').textContent = '⏸';
+  handleMusic();
+  if (animId) cancelAnimationFrame(animId);
+  animId = requestAnimationFrame(gameLoop);
+}
+
+function togglePause() {
+  if (!gameActive) return;
+  Module.action_pause();
+  const paused = Module.get_game_paused();
+  document.getElementById('overlay-pause').classList.toggle('active', paused);
+  document.getElementById('pause-btn').textContent = paused ? '▶' : '⏸';
+  if (!paused) {
+    animId = requestAnimationFrame(gameLoop);
+  }
+}
+
+function closeAllOverlays() {
+  document.getElementById('overlay-pause').classList.remove('active');
+  document.getElementById('overlay-exit-confirm').classList.remove('active');
+  document.getElementById('overlay-gameover').classList.remove('active');
+}
+
+function goMenu() {
+  if (gameActive && !Module.get_game_over()) {
+    // Показываем подтверждение
+    if (!Module.get_game_paused()) Module.action_pause();
+    closeAllOverlays();
+    document.getElementById('overlay-exit-confirm').classList.add('active');
+  } else {
+    doGoMenu();
+  }
+}
+
+function confirmExit(yes) {
+  document.getElementById('overlay-exit-confirm').classList.remove('active');
+  if (yes) doGoMenu();
+  else {
+    // Снять паузу
+    if (Module.get_game_paused()) togglePause();
+  }
+}
+
+function doGoMenu() {
+  gameActive = false;
+  if (animId) cancelAnimationFrame(animId);
+  stopMusic();
+  closeAllOverlays();
+  document.getElementById('pause-btn').textContent = '⏸';
+  saveSettings();
+  showScreen('menu');
+  updateMenuRecord();
+}
+
+function showGameOver() {
+  gameActive = false;
+  stopMusic();
+  const sc = Module.get_score();
+  const best = Module.get_best();
+  document.getElementById('go-score').textContent = sc;
+  const prevBest = getLocalRecordForSize(Module.get_grid_w(), Module.get_grid_h());
+  document.getElementById('go-best').textContent =
+    sc >= prevBest ? t('new_record') : `${t('prev_best')} ${best}`;
+  saveRecords();
+  saveSettings();
+  saveRecordToBackend(`${Module.get_grid_w()}x${Module.get_grid_h()}`, sc);
+  document.getElementById('overlay-gameover').classList.add('active');
+}
+
+/* ═══════════════════════════════════════════════════════
+   УПРАВЛЕНИЕ
+═══════════════════════════════════════════════════════ */
+function onCtrl(action) {
+  if (!gameActive) return;
+  if (Module.get_game_paused() && action !== 'pause') return;
+  switch(action) {
+    case 'left':   Module.action_left();      playSound('move'); break;
+    case 'right':  Module.action_right();     playSound('move'); break;
+    case 'down':   Module.action_down(performance.now());      break;
+    case 'rotate': Module.action_rotate();    playSound('rotate'); break;
+    case 'drop':   Module.action_hard_drop(); playSound('drop'); break;
+    case 'pause':  togglePause(); break;
+  }
+}
+
+// Зажатие вниз (soft drop)
+let downInterval = null;
+function stopSoftDrop() {
+  if (downInterval) {
+    clearInterval(downInterval);
+    downInterval = null;
+  }
+}
+document.addEventListener('keydown', e => {
+  if (!gameActive) return;
+  if (e.code === keyMap.down && !downInterval) {
+    e.preventDefault();
+    onCtrl('down');
+    downInterval = setInterval(() => onCtrl('down'), 60);
+  }
+});
+document.addEventListener('keyup', e => {
+  if (e.code === keyMap.down) stopSoftDrop();
+});
+window.addEventListener('blur', stopSoftDrop);
+
+afterInteraction(unlockAudio);
+
+/* ═══════════════════════════════════════════════════════
+   ЗВУК (Web Audio API)
+═══════════════════════════════════════════════════════ */
+let audioCtx = null;
+let audioUnlocked = false;
+function unlockAudio() {
+  if (audioUnlocked) return;
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {}).then(() => { audioUnlocked = true; });
+  } else {
+    audioUnlocked = true;
+  }
+}
+
+function afterInteraction(callback) {
+  const events = ['click', 'keydown', 'touchstart'];
+  const listener = () => { callback(); events.forEach(evt => document.removeEventListener(evt, listener, true)); };
+  events.forEach(evt => document.addEventListener(evt, listener, true));
+}
+
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+}
+
+function playSound(type) {
+  if (!window.Module || !Module.get_sound()) return;
+  try {
+    ensureAudio();
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+    switch(type) {
+      case 'move':
+        osc.frequency.setValueAtTime(220, now);
+        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+        osc.start(now); osc.stop(now + 0.06); break;
+      case 'rotate':
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(330, now);
+        osc.frequency.exponentialRampToValueAtTime(500, now + 0.08);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+        osc.start(now); osc.stop(now + 0.1); break;
+      case 'drop':
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.12);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc.start(now); osc.stop(now + 0.15); break;
+      case 'clear':
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.18);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+        osc.start(now); osc.stop(now + 0.22); break;
+    }
+  } catch(e) {}
+}
+
+// Фоновая музыка (простой паттерн)
+let musicNodes = [];
+let musicPlaying = false;
+let musicScheduled = false;
+
+function handleMusic() {
+  if (!window.Module) return;
+  if (Module.get_music() && gameActive && !musicPlaying) startMusic();
+  else if (!Module.get_music() || !gameActive) stopMusic();
+}
+
+function startMusic() {
+  if (musicPlaying) return;
+  musicPlaying = true;
+  ensureAudio();
+  scheduleMusic();
+}
+
+function stopMusic() {
+  musicPlaying = false;
+  musicNodes.forEach(n => { try { n.stop(); } catch(e){} });
+  musicNodes = [];
+}
+
+function scheduleMusic() {
+  if (!musicPlaying || !audioCtx) return;
+  // Простая тема — арпеджио
+  const notes = [261, 329, 392, 523, 392, 329, 261, 220];
+  const now = audioCtx.currentTime;
+  const dur = 0.18;
+  notes.forEach((freq, i) => {
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(freq, now + i * dur);
+    gain.gain.setValueAtTime(0.04, now + i * dur);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + i * dur + dur * 0.8);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(now + i * dur);
+    osc.stop(now + i * dur + dur);
+    musicNodes.push(osc);
+  });
+  setTimeout(() => { if (musicPlaying) scheduleMusic(); }, notes.length * dur * 1000 - 50);
+}
+
+/* ═══════════════════════════════════════════════════════
+   ИНИЦИАЛИЗАЦИЯ WASM
+═══════════════════════════════════════════════════════ */
+var Module = {
+  onRuntimeInitialized: async function() {
+    // cwrap — стандартный способ вызова C++ функций из JS
+    const cw = Module.cwrap.bind(Module);
+
+    Module.game_init        = cw('game_init',       null,     ['number','number','number']);
+    Module.game_update      = cw('game_update',     'number', ['number']);
+    Module.game_restart     = cw('game_restart',    null,     []);
+    Module.action_left      = cw('action_left',     null,     []);
+    Module.action_right     = cw('action_right',    null,     []);
+    Module.action_down      = cw('action_down',     null,     ['number']);
+    Module.action_hard_drop = cw('action_hard_drop',null,     []);
+    Module.action_rotate    = cw('action_rotate',   null,     []);
+    Module.action_pause     = cw('action_pause',    null,     []);
+
+    Module.get_grid_w      = cw('get_grid_w',      'number', []);
+    Module.get_grid_h      = cw('get_grid_h',      'number', []);
+    Module.get_score       = cw('get_score',       'number', []);
+    Module.get_lines       = cw('get_lines',       'number', []);
+    Module.get_level       = cw('get_level',       'number', []);
+    Module.get_best        = cw('get_best',        'number', []);
+    Module.get_game_over   = cw('get_game_over',   'number', []);
+    Module.get_game_paused = cw('get_game_paused', 'number', []);
+    Module.get_running     = cw('get_running',     'number', []);
+    Module.get_cell        = cw('get_cell',        'number', ['number','number']);
+
+    Module.get_cur_size    = cw('get_cur_size',    'number', []);
+    Module.get_cur_color   = cw('get_cur_color',   'number', []);
+    Module.get_cur_block_r = cw('get_cur_block_r', 'number', ['number']);
+    Module.get_cur_block_c = cw('get_cur_block_c', 'number', ['number']);
+
+    Module.get_next_size   = cw('get_next_size',   'number', []);
+    Module.get_next_color  = cw('get_next_color',  'number', []);
+    Module.get_next_block_r= cw('get_next_block_r','number', ['number']);
+    Module.get_next_block_c= cw('get_next_block_c','number', ['number']);
+
+    Module.set_sound       = cw('set_sound',       null,     ['number']);
+    Module.set_music       = cw('set_music',       null,     ['number']);
+    Module.set_dark        = cw('set_dark',        null,     ['number']);
+    Module.set_lefty       = cw('set_lefty',       null,     ['number']);
+    Module.set_lang        = cw('set_lang',        null,     ['number']);
+    Module.get_sound       = cw('get_sound',       'number', []);
+    Module.get_music       = cw('get_music',       'number', []);
+    Module.get_dark        = cw('get_dark',        'number', []);
+    Module.get_lefty       = cw('get_lefty',       'number', []);
+    Module.get_lang        = cw('get_lang',        'number', []);
+
+    Module.get_rec_count   = cw('get_rec_count',   'number', []);
+    Module.get_rec_key     = cw('get_rec_key',     'string', ['number']);
+    Module.get_rec_val     = cw('get_rec_val',     'number', ['number']);
+    Module.get_record_for_current = cw('get_record_for_current','number',[]);
+
+    // Backend и настройки
+    await initBackend();
+    await loadSettings();
+    applyI18n();
+
+    // Скрываем загрузку
+    document.getElementById('loading').style.display = 'none';
+    showScreen('menu');
+  },
+
+  // Обработка ошибок WASM
+  onAbort: function(reason) {
+    document.getElementById('loading-text').textContent = 'Ошибка: ' + reason;
+    document.getElementById('loading-text').style.color = '#ff4444';
+  },
+
+  print: function(text) { console.log('[WASM]', text); },
+  printErr: function(text) { console.error('[WASM ERR]', text); }
+};
+
+// Тайм-аут — если за 15 сек не загрузился, показать ошибку
+setTimeout(function() {
+  var loading = document.getElementById('loading');
+  if (loading && loading.style.display !== 'none') {
+    document.getElementById('loading-text').innerHTML =
+      '❌ WASM не загрузился.<br><small>Проверьте: index.js и index.wasm рядом с index.html?<br>Запущен ли python3 -m http.server?</small>';
+    document.getElementById('loading-text').style.color = '#ff4444';
+  }
+}, 15000);
+</script>
+
+<!-- index.js загружается ПОСЛЕ объявления var Module -->
+<script src="index.js"></script>
+</body>
+</html>
